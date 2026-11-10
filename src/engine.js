@@ -74,16 +74,14 @@ export function step(m,rules){
   }
 }
 
-export function tapeStr(m){
-  const k=[...m.tape.keys()].sort((a,b)=>a-b);
-  if(!k.length)return"";
-
-  let s="";
-  
-  for(let i=k[0];i<=k[k.length-1];i++) {
-    s+=m.tape.get(i)??"_";
-    return s
+export function tapeStr(m) {
+  const keys = [...m.tape.keys()].sort((a, b) => a - b);
+  if (!keys.length) return "";
+  let s = "";
+  for (let i = keys[0]; i <= keys[keys.length - 1]; i++) {
+    s += m.tape.get(i) ?? "_";
   }
+  return s;
 }
 
 // Run every test in a lesson against a parsed rule set.
