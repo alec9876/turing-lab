@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { LESSONS } from "./lessons";
+import { LESSONS } from "./constants/lessons";
+import Quiz from "./components/Quiz";
+import { QUESTIONS } from "./constants/quiz";
 import { parse, init, step, sym, tapeStr, runTests, MV } from "./engine";
 import "./App.css";
 
@@ -7,30 +9,32 @@ const KEY = "tmlab";
 const fresh = (input) => ({ hist: [init(input.replace(/_/g, ""))], pos: 0 });
 
 function loadStore() {
-  try { 
-    return { 
-      done: {}, 
-      rules: {}, 
-      ...JSON.parse(localStorage.getItem(KEY) || "{}") 
-    }; 
-  } catch { 
-    return { 
-      done: {}, 
-      rules: {} 
-    }; 
-  }
+  try { return { done: {}, rules: {}, best: null, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; }
+  catch { return { done: {}, rules: {}, best: null }; }
 }
 
 export default function App() {
   const [idx, setIdx] = useState(0);
   const [store, setStore] = useState(loadStore);
   useEffect(() => {
-    try { 
-      localStorage.setItem(KEY, JSON.stringify(store)); 
-    } catch { /* storage unavailable */ }
+    try { localStorage.setItem(KEY, JSON.stringify(store)); } catch { /* storage unavailable */ }
   }, [store]);
-
+  // Switching tabs resets scroll, so a long lesson never leaves the quiz scrolled down.
+  useEffect(() => { window.scrollTo(0, 0); }, [idx]);
   const lesson = LESSONS[idx];
+  const [resetKey, setResetKey] = useState(0); // bumping this remounts lessons and quiz
+  const allDone = LESSONS.every((l) => store.done[l.id]);
+
+  const resetAll = () => {
+    const ok = window.confirm(
+      "Would you like to reset the app?\n\nThis erases your completed lessons, saved rules, and quiz score. It can’t be undone."
+    );
+    if (!ok) return;
+    setStore({ done: {}, rules: {}, best: null });
+    setIdx(0);
+    setResetKey((k) => k + 1);
+  };
+  const onQuiz = idx === LESSONS.length && allDone;
 
   return (
     <>
@@ -40,22 +44,33 @@ export default function App() {
       </header>
       <nav aria-label="Lessons">
         {LESSONS.map((l, i) => (
-          <button key={l.id} 
-                  aria-current={i === idx} 
-                  onClick={() => setIdx(i)}>
-            {store.done[l.id] ? "Done!" : ""}{l.title}
+          <button key={l.id} aria-current={i === idx} onClick={() => setIdx(i)}>
+            {store.done[l.id] ? "✓ " : ""}{l.title}
           </button>
         ))}
+        <button disabled={!allDone} aria-current={onQuiz} onClick={() => setIdx(LESSONS.length)}
+          title={allDone ? "Test your knowledge" : "Complete all lessons to unlock"}>
+          {allDone ? "" : "🔒 "}Quiz{store.best != null ? ` (best ${store.best}/${QUESTIONS.length})` : ""}
+        </button>
+        <button className="reset" onClick={resetAll}>Reset app</button>
       </nav>
+      {!allDone && <p className="navnote">Pass every test in all three lessons to unlock the quiz.</p>}
       {/* key remounts LessonView, resetting hints, results and the machine per lesson */}
+      {onQuiz ? (
+        <main className="solo">
+          <Quiz key={resetKey} best={store.best}
+            onFinish={(sc) => setStore((s) => ({ ...s, best: Math.max(s.best ?? 0, sc) }))} />
+        </main>
+      ) : (
       <LessonView
-        key={lesson.id}
+        key={`${lesson.id}-${resetKey}`}
         lesson={lesson}
         savedRules={store.rules[lesson.id]}
         done={!!store.done[lesson.id]}
         onRules={(t) => setStore((s) => ({ ...s, rules: { ...s.rules, [lesson.id]: t } }))}
         onPass={() => setStore((s) => ({ ...s, done: { ...s.done, [lesson.id]: true } }))}
       />
+      )}
     </>
   );
 }
@@ -101,12 +116,7 @@ function LessonView({ lesson, savedRules, done, onRules, onPass }) {
     if (running && m.status !== "running" && atEnd) setRunning(false);
   }, [running, m.status, atEnd]);
 
-  const reset = () => { 
-    setSim(fresh(loaded)); 
-    setRunning(false); 
-    setNote(""); 
-  };
-
+  const reset = () => { setSim(fresh(loaded)); setRunning(false); setNote(""); };
   const answer = (mv) => {
     setNote(mv === rule.move ? `Correct, the head moves ${MV[rule.move]}.`
       : `Not quite: the rule moves ${MV[rule.move]}, not ${MV[mv]}.`);
