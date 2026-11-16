@@ -312,3 +312,63 @@ ul.plain li{
 }
 
 .muted{color:var(--muted)}
+
+main.solo{
+    grid-template-columns:minmax(0,720px)
+}
+nav button:disabled{
+    opacity:.5;
+    cursor:not-allowed
+}
+.navnote{
+    max-width:1100px;
+    margin:-4px auto 8px;
+    padding:0 20px;
+    color:var(--muted);
+    font-size:.9rem
+}
+fieldset.quiz{
+    border:0;
+    padding:0;
+    margin:0 0 10px
+}
+fieldset.quiz legend{
+    font-weight:600;
+    margin-bottom:10px;
+    padding:0
+}
+.opt{
+    display:block;
+    padding:10px 12px;
+    margin:6px 0;
+    border:1px solid var(--line);
+    border-radius:8px;
+    cursor:pointer;
+    background:var(--cell)
+}
+.opt.sel{
+    border-color:var(--accent)
+}
+.opt.right{
+    border-color:var(--ok);
+    box-shadow:inset 4px 0 0 var(--ok)
+}
+.opt.wrong{
+    border-color:var(--bad);
+    box-shadow:inset 4px 0 0 var(--bad)
+}
+.big{
+    font-size:2.2rem;
+    font-weight:700;
+    margin:4px 0
+}
+
+/* reset button (right of the last tab) */
+nav button.reset{
+    border-color:var(--bad);
+    color:var(--bad)
+}
+nav button.reset:hover{
+    background:var(--bad);
+    color:var(--surface)
+}
